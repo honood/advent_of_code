@@ -31,38 +31,68 @@ std::vector<std::vector<int>> parse_input_data(std::string const& input) {
   return reports;
 }
 
-bool is_report_safe(std::vector<int> const& report) {
-  if (report.size() < 2) {
+bool is_sequence_safe(std::vector<int> const& report, int skip_index = -1) {
+  if (report.size() - (skip_index != -1 ? 1 : 0) < 2) {
     return false;
   }
 
-  bool is_ascending = report[1] > report[0];
-  for (int i = 1; i < report.size(); ++i) {
-    int diff = report[i] - report[i - 1];
-    if (0 == diff) {
-      return false;
+  int prev = -1;
+  bool is_asc = true;
+  bool order_set = false;
+  for (size_t i = 0; i < report.size(); ++i) {
+    if (i == skip_index) {
+      continue;
     }
-    if (is_ascending && (diff < 1 || diff > 3)) {
-      return false;
+
+    if (prev != -1) {
+      int diff = report[i] - report[prev];
+      if (diff == 0) {
+        return false;
+      }
+
+      if (!order_set) {
+        is_asc = diff > 0;
+        order_set = true;
+      }
+
+      if (is_asc && (diff < 1 || diff > 3)) {
+        return false;
+      }
+      if (!is_asc && (diff > -1 || diff < -3)) {
+        return false;
+      }
     }
-    if (!is_ascending && (diff > -1 || diff < -3)) {
-      return false;
-    }
+
+    prev = i;
   }
 
   return true;
 }
 
+bool is_report_safe_with_dampener(std::vector<int> const& report) {
+  if (is_sequence_safe(report)) {
+    return true;
+  }
+
+  for (size_t i = 0; i < report.size(); ++i) {
+    if (is_sequence_safe(report, i)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 int calculate_safe_reports_num(std::vector<std::vector<int>> const& reports) {
   return std::transform_reduce(reports.cbegin(), reports.cend(), 0, std::plus<int>{}, [](auto const& report) {
-    return is_report_safe(report) ? 1 : 0;
+    return is_report_safe_with_dampener(report) ? 1 : 0;
   });
 }
 
 int main() {
   auto reports = parse_input_data(raw_input());
   int safe_reports_num = calculate_safe_reports_num(reports);
-  assert(safe_reports_num == 490);
+  assert(safe_reports_num == 536);
   std::cout << "How many reports are safe? " << safe_reports_num << std::endl;
 }
 
