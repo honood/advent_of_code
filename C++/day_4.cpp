@@ -11,7 +11,7 @@
 
 std::string raw_input();
 
-std::vector<std::string> parse_input_data(std::string const& input) {
+std::vector<std::string> parse_input(std::string const& input) {
   std::vector<std::string> result{};
 
   std::istringstream iss{input};
@@ -25,16 +25,16 @@ std::vector<std::string> parse_input_data(std::string const& input) {
   return result;
 }
 
-bool is_word_start_at(std::vector<std::string> const& board,
-                      std::string const& target,
+bool is_xmas_start_at(std::vector<std::string> const& board,
+                      std::string const& xmas,
                       int start_row, int start_col,
                       int dir_row, int dir_col) {
   int rows = board.size();
   int cols = board[0].size();
-  for (int i = 1; i < target.length(); ++i) {
+  for (int i = 1; i < xmas.length(); ++i) {
     int row = start_row + dir_row * i;
     int col = start_col + dir_col * i;
-    if (row < 0 || row >= rows || col < 0 || col >= cols || board[row][col] != target[i]) {
+    if (row < 0 || row >= rows || col < 0 || col >= cols || board[row][col] != xmas[i]) {
       return false;
     }
   }
@@ -42,7 +42,7 @@ bool is_word_start_at(std::vector<std::string> const& board,
   return true;
 }
 
-int search_word(std::vector<std::string> const& board, std::string const& target) {
+int search_xmas(std::vector<std::string> const& board) {
   constexpr std::array<std::pair<int, int>, 8> directions{{
     {-1, 0}, // N
     {-1, 1}, // NE
@@ -59,12 +59,12 @@ int search_word(std::vector<std::string> const& board, std::string const& target
   int cols = board[0].size();
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
-      if (board[i][j] != target[0]) {
+      if (board[i][j] != 'X') {
         continue;
       }
 
       for (auto const& [dir_row, dir_col] : directions) {
-        if (is_word_start_at(board, target, i, j, dir_row, dir_col)) {
+        if (is_xmas_start_at(board, "XMAS", i, j, dir_row, dir_col)) {
           ++count;
         }
       }
@@ -74,11 +74,44 @@ int search_word(std::vector<std::string> const& board, std::string const& target
   return count;
 }
 
+int search_x_mas(std::vector<std::string> const& board) {
+  int count = 0;
+
+  int rows = board.size();
+  int cols = board[0].size();
+  std::string candidate(3, 'A');
+  for (int i = 1; i < rows - 1; ++i) {
+    for (int j = 1; j < cols - 1; ++j) {
+      if (board[i][j] != 'A') {
+        continue;
+      }
+
+      candidate[0] = board[i - 1][j - 1];
+      candidate[2] = board[i + 1][j + 1];
+      if (candidate != "MAS" && candidate != "SAM") {
+        continue;
+      }
+
+      candidate[0] = board[i - 1][j + 1];
+      candidate[2] = board[i + 1][j - 1];
+      if (candidate == "MAS" || candidate == "SAM") {
+        ++count;
+      }
+    }
+  }
+
+  return count;
+}
+
 int main() {
-  auto board = parse_input_data(raw_input());
-  int res = search_word(board, "XMAS");
+  auto board = parse_input(raw_input());
+  int res = search_xmas(board);
   assert(res == 2297);
   std::cout << "How many times does XMAS appear? " << res << std::endl;
+
+  res = search_x_mas(board);
+  assert(res == 1745);
+  std::cout << "How many times does an X-MAS appear? " << res << std::endl;
 }
 
 std::string raw_input() {
