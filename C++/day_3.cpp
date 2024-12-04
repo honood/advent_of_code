@@ -6,21 +6,84 @@
 #include <regex>
 #include <cassert>
 #include <iostream>
+#include <cctype>
 
 std::string raw_input();
 
-int parse_input_data(std::string const& input) {
+[[maybe_unused]] int parse_input_data_with_regex(std::string const& input) {
   int res = 0;
-  std::regex pattern{R"(mul\((\d{1,3}),(\d{1,3})\))"};
+  std::regex pattern{R"(mul\((\d{1,3}),(\d{1,3})\)|do\(\)|don't\(\))"};
   std::sregex_iterator it{input.cbegin(), input.cend(), pattern};
   std::sregex_iterator end{};
+  bool skip = false;
   for (; it != end; ++it) {
     auto const& match = *it;
     if (match.empty()) {
       continue;
     }
 
-    res += std::stoi(match[1]) * std::stoi(match[2]);
+    if (match[0] == "don't()") {
+      skip = true;
+    } else if (match[0] == "do()") {
+      skip = false;
+    } else if (!skip) {
+      res += std::stoi(match[1]) * std::stoi(match[2]);
+    }
+  }
+
+  return res;
+}
+
+int parse_input_data(const std::string& input) {
+  int res = 0;
+  bool skip = false;
+  size_t pos = 0;
+  while (pos < input.size()) {
+    if (skip && (input.size() - pos < 4 || input.compare(pos, 4, "do()") != 0)) {
+      ++pos;
+    } else if (input.compare(pos, 7, "don't()") == 0) {
+      pos += 7;
+      skip = true;
+    } else if (input.compare(pos, 4, "do()") == 0) {
+      pos += 4; // skip `do()`
+      skip = false;
+    } else if (input.compare(pos, 4, "mul(") == 0) {
+      pos += 4; // skip `mul(`
+
+      int x = 0;
+      int digit_count = 0;
+      while (pos < input.size() && std::isdigit(input[pos]) && digit_count < 3) {
+        x = x * 10 + (input[pos] - '0');
+        ++pos;
+        ++digit_count;
+      }
+
+      if (digit_count == 0 || pos >= input.size() || input[pos] != ',') {
+        continue;
+      }
+
+      ++pos; // skip `,`
+
+      int y = 0;
+      digit_count = 0;
+      while (pos < input.size() && std::isdigit(input[pos]) && digit_count < 3) {
+        y = y * 10 + (input[pos] - '0');
+        ++pos;
+        ++digit_count;
+      }
+
+      if (digit_count == 0 || pos >= input.size() || input[pos] != ')') {
+        continue;
+      }
+
+      ++pos; // skip `)`
+
+      if (!skip) {
+        res += x * y;
+      }
+    } else {
+      ++pos;
+    }
   }
 
   return res;
@@ -28,7 +91,7 @@ int parse_input_data(std::string const& input) {
 
 int main() {
   int res = parse_input_data(raw_input());
-  assert(res == 156388521);
+  assert(res == 75920122);
   std::cout << "What do you get if you add up all of the results of the multiplications? " << res << std::endl;
 }
 
