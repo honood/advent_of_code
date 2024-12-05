@@ -4,89 +4,86 @@
 
 #include <sstream>
 #include <vector>
-#include <utility>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <algorithm>
+#include <iterator>
 #include <cassert>
 #include <iostream>
 
 constexpr std::string raw_input();
 
-auto parse_input_data(std::string const& input) {
+auto parse_input(std::string const& input) {
   std::istringstream iss{input};
-  std::vector<std::pair<int, int>> ordering_rules{};
-  std::vector<std::vector<int>> page_updates{};
+  while (iss.peek() == '\n') {
+    iss.get();
+  }
+
+  std::unordered_map<int, std::unordered_set<int>> rules{};
   std::string line{};
-  bool second_section_began = false;
-  while (std::getline(iss, line)) {
-    if (line.empty()) {
-      if (!second_section_began && !ordering_rules.empty()) {
-        second_section_began = true;
-      }
-      continue;
-    }
+  while (std::getline(iss, line) && !line.empty()) {
+    size_t pos = line.find('|');
+    int first = std::stoi(line.substr(0, pos));
+    int second = std::stoi(line.substr(pos + 1));
+    rules[first].emplace(second);
+  }
 
-    if (second_section_began) {
-      std::istringstream iss{line};
-      std::vector<int> update{};
-      while (std::getline(iss, line, ',')) {
-        if (!line.empty()) {
-          update.emplace_back(std::stoi(line));
-        }
-      }
-      if (!update.empty()) {
-        page_updates.push_back(std::move(update));
-      }
-    } else {
-      std::istringstream iss{line};
-      std::vector<int> rule{};
-      while (std::getline(iss, line, '|')) {
-        if (!line.empty()) {
-          rule.emplace_back(std::stoi(line));
-        }
-      }
-      if (!rule.empty()) {
-        ordering_rules.emplace_back(rule[0], rule[1]);
-      }
+  std::vector<std::vector<int>> updates{};
+  while (std::getline(iss, line) && !line.empty()) {
+    std::istringstream line_iss{line};
+    std::vector<int> update{};
+    std::string page{};
+    while (std::getline(line_iss, page, ',')) {
+      update.emplace_back(std::stoi(page));
+    }
+    if (!update.empty()) {
+      updates.emplace_back(std::move(update));
     }
   }
 
-  return std::pair{ordering_rules, page_updates};
+  return std::pair{rules, updates};
 }
 
-auto find_correct_updates(std::vector<std::pair<int, int>> const& ordering_rules,
-                          std::vector<std::vector<int>>& page_updates) {
-  std::vector<std::vector<int>> correct_updates{};
-  std::unordered_map<int, std::unordered_set<int>> transformed_rules{};
-  for (const auto& [first, second] : ordering_rules) {
-    transformed_rules[first].emplace(second);
-  }
-
-  for (auto& update : page_updates) {
-    bool is_correctly_ordered = std::is_sorted(update.begin(), update.end(), [&transformed_rules](int lhs, int rhs) {
-      return transformed_rules.contains(lhs) && transformed_rules[lhs].contains(rhs);
-    });
-    if (is_correctly_ordered) {
-      correct_updates.emplace_back(std::move(update));
-    }
-  }
-
-  return correct_updates;
-}
-
-int add_up_middle_page_numbers(std::vector<std::vector<int>> const& page_updates) {
-  return std::reduce(page_updates.cbegin(), page_updates.cend(), 0, [](int const& acc, std::vector<int> const& update) {
-    return acc + update[update.size() / 2];
+bool is_correct_update(std::vector<int> const& update,
+                       std::unordered_map<int, std::unordered_set<int>> const& rules) {
+  return std::is_sorted(update.begin(), update.end(), [&rules](int lhs, int rhs) {
+    return rules.contains(lhs) && rules.at(lhs).contains(rhs);
   });
 }
 
+void sort_update(std::vector<int>& update,
+                 std::unordered_map<int, std::unordered_set<int>> const& rules) {
+  std::sort(update.begin(), update.end(), [&rules](int lhs, int rhs) {
+    return rules.contains(lhs) && rules.at(lhs).contains(rhs);
+  });
+}
+
+int add_up_middle_page_nums(std::vector<int> mid_pages) {
+  return std::reduce(mid_pages.cbegin(), mid_pages.cend());
+}
+
 int main() {
-  auto [ordering_rules, page_updates] = parse_input_data(raw_input());
-  auto correct_updates = find_correct_updates(ordering_rules, page_updates);
-  int sum = add_up_middle_page_numbers(correct_updates);
-  assert(sum == 4569);
-  std::cout << "What do you get if you add up the middle page number from those correctly-ordered updates? " << sum << '\n';
+  auto [rules, updates] = parse_input(raw_input());
+
+  std::vector<int> part1_mid_pages{};
+  std::vector<int> part2_mid_pages{};
+  for (auto& update : updates) {
+    if (is_correct_update(update, rules)) {
+      part1_mid_pages.emplace_back(update[update.size() / 2]);
+    } else {
+      sort_update(update, rules);
+      part2_mid_pages.emplace_back(update[update.size() / 2]);
+    }
+  }
+
+  int part1_sum = add_up_middle_page_nums(part1_mid_pages);
+  assert(part1_sum == 4569);
+  std::cout << "What do you get if you add up the middle page number from those correctly-ordered updates? " << part1_sum << '\n';
+
+  int part2_sum = add_up_middle_page_nums(part2_mid_pages);
+  assert(part2_sum == 6456);
+  std::cout << "What do you get if you add up the middle page numbers after correctly ordering just those updates? " << part2_sum << '\n';
 }
 
 constexpr std::string raw_input() {
