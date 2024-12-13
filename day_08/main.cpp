@@ -41,9 +41,10 @@ inline bool pos_in_bounds(pos_t const& p, int const rows, int const cols) {
   return p.first >= 0 && p.first < rows && p.second >= 0 && p.second < cols;
 }
 
-void mark_antinodes_for(pos_t const& antenna1, pos_t const& antenna2,
-                        int const rows, int const cols,
-                        std::vector<bool>& marked) {
+template<bool ForPart2 = false>
+void mark_antinodes(pos_t const& antenna1, pos_t const& antenna2,
+                    int const rows, int const cols,
+                    std::vector<bool>& marked) {
   pos_t antinode1{2 * antenna1.first - antenna2.first, 2 * antenna1.second - antenna2.second};
   pos_t antinode2{2 * antenna2.first - antenna1.first, 2 * antenna2.second - antenna1.second};
 
@@ -55,6 +56,23 @@ void mark_antinodes_for(pos_t const& antenna1, pos_t const& antenna2,
   }
 }
 
+template<>
+void mark_antinodes<true>(pos_t const& p1, pos_t const& p2, int const rows, int const cols, std::vector<bool>& marked) {
+  auto helper = [rows, cols, &marked](pos_t p1, pos_t p2) {
+    while (pos_in_bounds(p1, rows, cols)) {
+      if (int i = cols * p1.first + p1.second; !marked[i]) { marked[i] = true; }
+
+      pos_t temp{2 * p1.first - p2.first, 2 * p1.second - p2.second};
+      p2 = p1;
+      p1 = temp;
+    }
+  };
+
+  helper(p1, p2);
+  helper(p2, p1);
+}
+
+template<bool ForPart2>
 int find_all_antinodes(std::vector<std::string> const& map) {
   int rows = map.size();
   int cols = map[0].size();
@@ -66,7 +84,7 @@ int find_all_antinodes(std::vector<std::string> const& map) {
 
     for (int i = 0; i < antennas.size(); ++i) {
       for (int j = i + 1; j < antennas.size(); ++j) {
-        mark_antinodes_for(antennas[i], antennas[j], rows, cols, marked);
+        mark_antinodes<ForPart2>(antennas[i], antennas[j], rows, cols, marked);
       }
     }
   }
@@ -78,7 +96,12 @@ int find_all_antinodes(std::vector<std::string> const& map) {
 
 int main() {
   auto map = parse_input();
-  int unique_antinodes_cnt = find_all_antinodes(map);
+
+  int unique_antinodes_cnt = find_all_antinodes<false>(map);
   assert(unique_antinodes_cnt == 276);
-  std::cout << "Part1: How many unique locations within the bounds of the map contain an antinode? " << unique_antinodes_cnt << '\n';
+  std::cout << "Part 1: How many unique locations within the bounds of the map contain an antinode? " << unique_antinodes_cnt << '\n';
+
+  unique_antinodes_cnt = find_all_antinodes<true>(map);
+  assert(unique_antinodes_cnt == 991);
+  std::cout << "Part 2: How many unique locations within the bounds of the map contain an antinode? " << unique_antinodes_cnt << '\n';
 }
