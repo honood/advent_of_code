@@ -14,16 +14,24 @@
 
 using u64 = uint64_t;
 
-std::vector<u64> parse_disk_map(std::string const &disk_map) {
+std::pair<std::vector<u64>, std::vector<std::pair<u64, u64>>> parse_disk_map(std::string const &disk_map) {
   std::vector<u64> blocks{};
+  std::vector<std::pair<u64, u64>> free_space_index{};
+
   u64 file_id = 0;
   for (u64 i = 0; i < disk_map.size(); ++i) {
     char c = disk_map[i];
     if (c <= '0' || c > '9') { continue; }
-    blocks.resize(blocks.size() + c - '0', i & 0x1 ? -1 : file_id++);
+
+    u64 cnt = c - '0';
+    bool is_space = (i & 0x1) == 1;
+    if (is_space) {
+      free_space_index.emplace_back(blocks.size(), cnt);
+    }
+    blocks.resize(blocks.size() + cnt, is_space ? -1 : file_id++);
   }
 
-  return blocks;
+  return {blocks, free_space_index};
 }
 
 void part1_compact_files(std::vector<u64>& blocks) {
@@ -37,17 +45,26 @@ void part1_compact_files(std::vector<u64>& blocks) {
   }
 }
 
-void part2_compact_files(std::vector<u64>& blocks, std::string const &disk_map) {
+void part2_compact_files(std::vector<u64>& blocks, std::string const &disk_map, std::vector<std::pair<u64, u64>>& free_space_index) {
   auto calc_file_size = [&disk_map](u64 file_id) -> u64 {
     return disk_map[file_id * 2] - '0';
   };
 
-  using diff_t = std::iterator_traits<decltype(blocks.begin())>::difference_type;
+  auto find_fit_space = [&free_space_index](u64 size, u64 before) -> u64 {
+    for (u64 j = 0; j < free_space_index.size(); ++j) {
+      auto& p = free_space_index[j];
+      if (p.second >= size && p.first + p.second <= before) {
+        int i = p.first;
+        p.first += size;
+        p.second -= size;
+        return i;
+      }
+    }
 
-  auto find_fit_space = [&blocks](u64 size, u64 before) -> u64 {
-    auto it = std::search_n(blocks.begin(), std::next(blocks.begin(), static_cast<diff_t>(before)), size, -1);
-    return it == blocks.end() ? -1 : std::distance(blocks.begin(), it);
+    return -1;
   };
+
+  using diff_t = std::iterator_traits<decltype(blocks.begin())>::difference_type;
 
   u64 last_try_move_id = -1; // -1: max of u64
   for (u64 i = blocks.size() - 1; blocks[i] > 0;) {
@@ -88,7 +105,7 @@ u64 calculate_checksum(std::vector<u64> const& compacted_files) {
 
 int main() {
   std::string const disk_map = helper::read_file_as_string("input.txt");
-  std::vector<u64> blocks = parse_disk_map(disk_map);
+  auto [blocks, free_space_index] = parse_disk_map(disk_map);
 
   auto blocks_part1{blocks};
   part1_compact_files(blocks_part1);
@@ -97,7 +114,7 @@ int main() {
   std::cout << "Part 1: What is the resulting filesystem checksum? " << filesystem_checksum << '\n';
 
   auto blocks_part2{blocks};
-  part2_compact_files(blocks_part2, disk_map);
+  part2_compact_files(blocks_part2, disk_map, free_space_index);
   filesystem_checksum = calculate_checksum(blocks_part2);
   assert(filesystem_checksum == 6237075041489);
   std::cout << "Part 2: What is the resulting filesystem checksum? " << filesystem_checksum << '\n';
