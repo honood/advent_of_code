@@ -8,7 +8,6 @@
 #include <array>
 #include <algorithm>
 #include <functional>
-#include <set>
 #include <cassert>
 #include <iostream>
 
@@ -37,26 +36,30 @@ int calc_trailhead_scores_sum(std::vector<std::vector<int>> const& map) {
   int const rows = map.size();
   int const cols = map[0].size();
 
-  int score = 0;
   int visit_id = 0;
   std::vector<int> visited(rows * cols, 0);
-  std::function<void(int, int)> dfs = [&](int row, int col) {
+
+  std::function<int(int, int)> dfs = [&](int row, int col) {
     if (map[row][col] == 9) {
       if (visited[cols * row + col] != visit_id) {
-        score += 1;
         visited[cols * row + col] = visit_id;
+        return 1;
       }
-      return;
+
+      return 0;
     }
 
+    int score = 0;
     for (auto const& [drow, dcol] : directions) {
       int next_row = row + drow;
       int next_col = col + dcol;
       if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols
           && map[next_row][next_col] == map[row][col] + 1) {
-        dfs(next_row, next_col);
+        score += dfs(next_row, next_col);
       }
     }
+
+    return score;
   }; // dfs
 
   int sum = 0;
@@ -64,9 +67,7 @@ int calc_trailhead_scores_sum(std::vector<std::vector<int>> const& map) {
     for (int j = 0; j < cols; ++j) {
       if (map[i][j] != 0) { continue; }
       ++visit_id;
-      score = 0;
-      dfs(i, j);
-      sum += score;
+      sum += dfs(i, j);
     }
   }
 
@@ -77,37 +78,30 @@ int calc_trailhead_ratings_sum(std::vector<std::vector<int>> const& map) {
   int const rows = map.size();
   int const cols = map[0].size();
 
-  std::set<std::vector<std::pair<int, int>>> distinct_trails{};
-  std::vector<std::pair<int, int>> curr_trail{};
-  std::function<void(int, int)> dfs = [&](int row, int col) {
-    if (map[row][col] == 9) {
-      if (!distinct_trails.contains(curr_trail)) {
-        distinct_trails.emplace(curr_trail);
-      }
-      return;
-    }
+  std::vector<std::vector<int>> memo(rows, std::vector<int>(cols, -1));
 
+  std::function<int(int, int)> dfs = [&](int row, int col) {
+    if (map[row][col] == 9) { return 1; }
+    if (memo[row][col] != -1) { return memo[row][col]; }
+
+    int total_trails = 0;
     for (auto const& [drow, dcol] : directions) {
       int next_row = row + drow;
       int next_col = col + dcol;
       if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols
           && map[next_row][next_col] == map[row][col] + 1) {
-        curr_trail.emplace_back(next_row, next_col);
-        dfs(next_row, next_col);
-        curr_trail.pop_back();
+        total_trails += dfs(next_row, next_col);
       }
     }
+
+    memo[row][col] = total_trails;
+    return total_trails;
   }; // dfs
 
   int sum = 0;
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
-      if (map[i][j] != 0) { continue; }
-      distinct_trails.clear();
-      curr_trail.clear();
-      // curr_trail.emplace_back(i, j); // Not required
-      dfs(i, j);
-      sum += static_cast<int>(distinct_trails.size());
+      if (map[i][j] == 0) { sum += dfs(i, j); }
     }
   }
 
