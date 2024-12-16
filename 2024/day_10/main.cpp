@@ -8,6 +8,7 @@
 #include <array>
 #include <algorithm>
 #include <functional>
+#include <set>
 #include <cassert>
 #include <iostream>
 
@@ -52,7 +53,7 @@ int calc_trailhead_scores_sum(std::vector<std::vector<int>> const& map) {
       int next_row = row + drow;
       int next_col = col + dcol;
       if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols
-        && map[next_row][next_col] == map[row][col] + 1) {
+          && map[next_row][next_col] == map[row][col] + 1) {
         dfs(next_row, next_col);
       }
     }
@@ -72,10 +73,55 @@ int calc_trailhead_scores_sum(std::vector<std::vector<int>> const& map) {
   return sum;
 }
 
+int calc_trailhead_ratings_sum(std::vector<std::vector<int>> const& map) {
+  int const rows = map.size();
+  int const cols = map[0].size();
+
+  std::set<std::vector<std::pair<int, int>>> distinct_trails{};
+  std::vector<std::pair<int, int>> curr_trail{};
+  std::function<void(int, int)> dfs = [&](int row, int col) {
+    if (map[row][col] == 9) {
+      if (!distinct_trails.contains(curr_trail)) {
+        distinct_trails.emplace(curr_trail);
+      }
+      return;
+    }
+
+    for (auto const& [drow, dcol] : directions) {
+      int next_row = row + drow;
+      int next_col = col + dcol;
+      if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols
+          && map[next_row][next_col] == map[row][col] + 1) {
+        curr_trail.emplace_back(next_row, next_col);
+        dfs(next_row, next_col);
+        curr_trail.pop_back();
+      }
+    }
+  }; // dfs
+
+  int sum = 0;
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      if (map[i][j] != 0) { continue; }
+      distinct_trails.clear();
+      curr_trail.clear();
+      // curr_trail.emplace_back(i, j); // Not required
+      dfs(i, j);
+      sum += static_cast<int>(distinct_trails.size());
+    }
+  }
+
+  return sum;
+}
+
 int main() {
   auto map = parse_input();
 
   int scores_sum = calc_trailhead_scores_sum(map);
   assert(607 == scores_sum);
   std::cout << "What is the sum of the scores of all trailheads on your topographic map? " << scores_sum << '\n';
+
+  int ratings_sum = calc_trailhead_ratings_sum(map);
+  assert(1384 == ratings_sum);
+  std::cout << "What is the sum of the ratings of all trailheads? " << ratings_sum << "\n";
 }
