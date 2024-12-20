@@ -65,7 +65,34 @@ void solve_part1(unordered_set<string> const& patterns, vector<string> const& de
   cout << "Part 1: How many designs are possible? " << res << '\n';
 }
 
+uint64_t count_possible_options(unordered_set<string> const& patterns, string const& design) {
+  vector<uint64_t> dp(design.size() + 1, 0);
+  dp[0] = 1;
+
+  for (int i = 1; i < dp.size(); ++i) {
+    for (auto const& pattern : patterns) {
+      int len = pattern.size();
+      if (i >= len && pattern == design.substr(i - len, len)) {
+        dp[i] += dp[i - len];
+      }
+    }
+  }
+
+  return dp[design.size()];
+}
+
+void solve_part2(unordered_set<string> const& patterns, vector<string> const& designs) {
+  // Note: Make sure the initial value in `std::reduce` has the correct 
+  // type (`uint64_t`), or else it will overflow and yield incorrect results.
+  uint64_t res = reduce(designs.cbegin(), designs.cend(), uint64_t{0}, [&patterns](uint64_t acc, string const& design) {
+    return acc + count_possible_options(patterns, design);
+  });
+  assert(666491493769758 == res);
+  cout << "Part 2: What do you get if you add up the number of different ways you could make each design? " << res << '\n';
+}
+
 int main() {
   auto [patterns, designs] = parse_input();
   solve_part1(patterns, designs);
+  solve_part2(patterns, designs);
 }
