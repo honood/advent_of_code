@@ -72,9 +72,7 @@ std::vector<std::pair<int, int>> find_path_without_cheat(std::vector<std::string
   return path;
 }
 
-void solve_part1(std::vector<std::string> const& map, std::vector<std::pair<int, int>> const& path) {
-  int res = 0;
-
+uint64_t pos_pair_hash_on_map(int p1_row, int p1_col, int p2_row, int p2_col, std::vector<std::string> const& map) {
   int bit_width = [](uint64_t n) {
     int width = 0;
     while (n > 0) {
@@ -83,6 +81,15 @@ void solve_part1(std::vector<std::string> const& map, std::vector<std::pair<int,
     }
     return width;
   }(map.size());
+
+  return (static_cast<uint64_t>(p1_row) << (bit_width * 3)) +
+         (static_cast<uint64_t>(p1_col) << (bit_width * 2)) +
+         (static_cast<uint64_t>(p2_row) << bit_width) +
+         static_cast<uint64_t>(p2_col);
+}
+
+void solve_part1(std::vector<std::string> const& map, std::vector<std::pair<int, int>> const& path) {
+  int res = 0;
   std::unordered_set<uint64_t> visited{};
 
   for (int i = 0; i < path.size(); ++i) {
@@ -92,25 +99,66 @@ void solve_part1(std::vector<std::string> const& map, std::vector<std::pair<int,
       if ((cheat_start_row == cheat_end_row && std::abs(cheat_start_col - cheat_end_col) == 2)
           || (cheat_start_col == cheat_end_col && std::abs(cheat_start_row - cheat_end_row) == 2)) {
         if (int save_steps = (j - i) - 2; save_steps >= 100) {
-          uint64_t hash = (static_cast<uint64_t>(cheat_start_row) << (bit_width * 3)) +
-                          (static_cast<uint64_t>(cheat_start_col) << (bit_width * 2)) +
-                          (static_cast<uint64_t>(cheat_end_row) << bit_width) +
-                          static_cast<uint64_t>(cheat_end_col);
-          if (!visited.contains(hash)) {
+          if (uint64_t hash = pos_pair_hash_on_map(cheat_start_row, cheat_start_col, cheat_end_row, cheat_end_col, map);
+            !visited.contains(hash)) {
             ++res;
             visited.emplace(hash);
           }
         }
       }
-    } // for
-  } // for
+    } // for: j
+  } // for: i
 
   assert(res == 1415);
   std::cout << "Part 1: How many cheats would save you at least 100 picoseconds? " << res << std::endl;
+}
+
+void solve_part2(std::vector<std::string> const& map, std::vector<std::pair<int, int>> const& path) {
+  int const rows = map.size();
+  int const cols = map[0].size();
+
+  auto in_bounds = [&rows, &cols](int row, int col) {
+    return row >= 0 && row < rows && col >= 0 && col < cols;
+  };
+
+  std::vector<int> pos2idx(rows * cols, -1);
+  for (int i = 0; i < path.size(); ++i) {
+    auto [row, col] = path[i];
+    pos2idx[cols * row + col] = i;
+  }
+
+  struct dir { int x, y; };
+
+  int res = 0;
+  std::unordered_set<uint64_t> visited{};
+
+  for (int i = 0; i < path.size(); ++i) {
+    auto [cheat_start_row, cheat_start_col] = path[i];
+    for (int cheating_rule = 2; cheating_rule <= 20; ++cheating_rule) {
+      for (int drow = 0; drow <= cheating_rule; ++drow) {
+        for (auto [x, y] : {dir{1, 1}, dir{-1, 1}, dir{-1, -1}, dir{1, -1}}) {
+          int cheat_end_row = cheat_start_row + x * drow;
+          int cheat_end_col = cheat_start_col + y * (cheating_rule - drow);
+          if (!in_bounds(cheat_end_row, cheat_end_col)) { continue; }
+          if (int j = pos2idx[cols * cheat_end_row + cheat_end_col]; j == -1 || (j - i) - cheating_rule < 100) { continue; }
+
+          if (uint64_t hash = pos_pair_hash_on_map(cheat_start_row, cheat_start_col, cheat_end_row, cheat_end_col, map);
+            !visited.contains(hash)) {
+            ++res;
+            visited.emplace(hash);
+          }
+        } // for: x, y
+      } // for: drow
+    } // for: cheating_rule
+  } // for: i
+
+  assert(1022577 == res);
+  std::cout << "Part 2: How many cheats would save you at least 100 picoseconds? " << res << std::endl;
 }
 
 int main() {
   auto map = parse_input();
   auto path = find_path_without_cheat(map);
   solve_part1(map, path);
+  solve_part2(map, path);
 }
