@@ -4,7 +4,7 @@ const std = @import("std");
 
 pub fn main() !void {
     // 1. Initialize allocator
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -154,5 +154,8 @@ fn writeTemplateFile(
     defer allocator.free(content);
 
     // Write to file
-    try file.writeAll(content);
+    var index: usize = 0;
+    while (index < content.len) {
+        index += try file.write(content[index..]);
+    }
 }
