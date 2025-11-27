@@ -38,70 +38,74 @@ int main() {
     std::string url_day = std::to_string(day);
 
     // 2. main.cpp (Template: 2 spaces)
-    std::string cpp_content =
-      "// https://adventofcode.com/2025/day/" + url_day + "\n"
-      "//\n"
-      "// clang++ -std=gnu++23 -stdlib=libc++ main.cpp -o main && ./main && rm main\n"
-      "\n"
-      "#include <iostream>\n"
-      "\n"
-      "int main() {\n"
-      "  std::cout << \"Hello, Advent of Code 2025!\" << std::endl;\n"
-      "}\n";
+    // Use R"(...)" syntax, no need to manually write \n and \"
+    std::string cpp_content = R"(// https://adventofcode.com/2025/day/)" + url_day + R"(
+//
+// clang++ -std=gnu++23 -stdlib=libc++ main.cpp -o main && ./main && rm main
+
+#include <iostream>
+
+int main() {
+  std::cout << "Hello, Advent of Code 2025!" << std::endl;
+}
+)";
     write_file(day_path / "main.cpp", cpp_content);
 
     // 3. main.swift (Template: Top level / 2 spaces align)
-    std::string swift_content =
-      "// https://adventofcode.com/2025/day/" + url_day + "\n"
-      "//\n"
-      "// swiftc main.swift -o main && ./main && rm main\n"
-      "// -OR-\n"
-      "// swift main.swift\n"
-      "\n"
-      "print(\"Hello, Advent of Code 2025!\")\n";
+    std::string swift_content = R"(// https://adventofcode.com/2025/day/)" + url_day + R"(
+//
+// swiftc main.swift -o main && ./main && rm main
+// -OR-
+// swift main.swift
+
+print("Hello, Advent of Code 2025!")
+)";
     write_file(day_path / "main.swift", swift_content);
 
     // 4. main.go (Template: Hard Tab)
-    std::string go_content =
-      "// https://adventofcode.com/2025/day/" + url_day + "\n"
-      "//\n"
-      "// go build -o main main.go && ./main && rm main\n"
-      "// -OR-\n"
-      "// go run main.go\n"
-      "\n"
-      "package main\n"
-      "\n"
-      "import \"fmt\"\n"
-      "\n"
-      "func main() {\n"
-      "\tfmt.Println(\"Hello, Advent of Code 2025!\")\n"
-      "}\n";
+    // To ensure the generated file uses a Tab (\t) instead of spaces,
+    // explicitly concatenate "\t" into the raw string.
+    std::string go_content = R"(// https://adventofcode.com/2025/day/)" + url_day + R"(
+//
+// go build -o main main.go && ./main && rm main
+// -OR-
+// go run main.go
+
+package main
+
+import "fmt"
+
+func main() {
+)" "\t" R"(fmt.Println("Hello, Advent of Code 2025!")
+}
+)";
     write_file(day_path / "main.go", go_content);
 
     // 5. main.rs (Template: 2 spaces)
-    std::string rs_content =
-      "// https://adventofcode.com/2025/day/" + url_day + "\n"
-      "//\n"
-      "// rustc main.rs && ./main && rm main\n"
-      "\n"
-      "fn main() {\n"
-      "  println!(\"Hello, Advent of Code 2025!\");\n"
-      "}\n";
+    std::string rs_content = R"(// https://adventofcode.com/2025/day/)" + url_day + R"(
+//
+// rustc main.rs && ./main && rm main
+
+fn main() {
+  println!("Hello, Advent of Code 2025!");
+}
+)";
     write_file(day_path / "main.rs", rs_content);
 
     // 6. main.zig (Template: 4 spaces)
-    std::string zig_content =
-      "// https://adventofcode.com/2025/day/" + url_day + "\n"
-      "//\n"
-      "// zig build-exe main.zig && ./main && rm main\n"
-      "// -OR-\n"
-      "// zig run main.zig\n"
-      "\n"
-      "const std = @import(\"std\");\n"
-      "\n"
-      "pub fn main() !void {\n"
-      "    std.debug.print(\"Hello, Advent of Code 2025!\\n\", .{});\n"
-      "}\n";
+    // No double backslash escaping needed in Raw String, just write \n directly
+    std::string zig_content = R"(// https://adventofcode.com/2025/day/)" + url_day + R"(
+//
+// zig build-exe main.zig && ./main && rm main
+// -OR-
+// zig run main.zig
+
+const std = @import("std");
+
+pub fn main() !void {
+    std.debug.print("Hello, Advent of Code 2025!\n", .{});
+}
+)";
     write_file(day_path / "main.zig", zig_content);
   }
 
